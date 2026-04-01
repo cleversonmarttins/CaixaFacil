@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caixa Simples</title>
+<style>
+body{font-family:Arial;background:#f5f5f5;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
+.app{width:320px;background:white;border-radius:16px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+h1{font-size:18px;margin:0}
+.valor{font-size:28px;font-weight:bold;margin:10px 0;text-align:right}
+.btn{width:100%;padding:12px;margin-top:8px;border:none;border-radius:10px;font-size:16px;cursor:pointer}
+.primary{background:#2563eb;color:white}
+.secondary{background:#e5e7eb}
+.outline{background:transparent;border:1px solid #ccc}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:10px}
+.small-btn{padding:8px;border-radius:8px;border:1px solid #ccc;cursor:pointer;background:#fafafa}
+.small-btn:active{transform:scale(.95)}
+.item-list{background:#f9fafb;border-radius:10px;padding:8px;margin-top:10px;height:90px;overflow-y:auto;font-size:14px}
+.item{padding:4px;cursor:pointer;display:flex;align-items:center}
+.item span:nth-child(1){flex:2}
+.item span:nth-child(2){flex:1;text-align:center}
+.item span:nth-child(3){flex:1;text-align:right}
+.highlight{background:#bfdbfe;border-radius:6px}
+.removido{text-decoration:line-through;text-decoration-color:red;color:#888}
+input{width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid #ccc}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div id="home">
+<h1>💰 Caixa Atual</h1>
+<div class="valor">R$ 1.250,00</div>
+<div>Entradas: R$ 1.500</div>
+<div>Saídas: R$ 250</div>
+<button class="btn primary" onclick="showScreen('venda')">➕ Nova Venda</button>
+<button class="btn secondary" onclick="showScreen('fechamento')">🧾 Fechar o Dia</button>
+<button class="btn outline" onclick="showScreen('historico')">📜 Histórico</button>
+</div>
+
+<div id="venda" class="hidden">
+<h1>Nova Venda</h1>
+<div class="valor" id="valor">R$ 0</div>
+
+<div class="item-list">
+  <div style="display:flex;font-weight:bold;border-bottom:1px solid #ddd;padding-bottom:4px;margin-bottom:4px;">
+    <span style="flex:2">Item</span>
+    <span style="flex:1;text-align:center">Qtd</span>
+    <span style="flex:1;text-align:right">Total</span>
+  </div>
+  <div id="itensVenda"></div>
+</div>
+
+<input id="busca" placeholder="Buscar produto..." oninput="buscarProduto()">
+<div class="grid" id="listaBusca"></div>
+<div class="grid" id="favoritos"></div>
+
+<button class="btn" onclick="finalizar()">💵 Dinheiro</button>
+<button class="btn" onclick="finalizar()">📲 Pix</button>
+<button class="btn" onclick="finalizar()">💳 Cartão</button>
+<button class="btn outline" onclick="showScreen('home')">Voltar</button>
+</div>
+
+<div id="fechamento" class="hidden">
+<h1>Fechamento do Dia</h1>
+<input placeholder="Dinheiro">
+<input placeholder="Pix">
+<input placeholder="Cartão">
+<input placeholder="Gastos">
+<button class="btn primary" onclick="showScreen('home')">Finalizar Dia</button>
+<button class="btn outline" onclick="showScreen('home')">Voltar</button>
+</div>
+
+<div id="historico" class="hidden">
+<h1>Histórico</h1>
+<div class="btn outline">25/03 - R$ 1200</div>
+<div class="btn outline">24/03 - R$ 980</div>
+<button class="btn" onclick="showScreen('home')">Voltar</button>
+</div>
+
+</div>
+
+<script>
+var total = 0;
+var itens = [];
+var lastAddedIndex = null;
+
+var produtos = [
+{nome:"Coca",preco:5},
+{nome:"Pão",preco:2},
+{nome:"Ração",preco:50},
+{nome:"Água",preco:3},
+{nome:"Café",preco:4}
+];
+
+function showScreen(screen){
+var telas = ["home","venda","fechamento","historico"];
+for(var i=0;i<telas.length;i++){
+document.getElementById(telas[i]).classList.add("hidden");
+}
+document.getElementById(screen).classList.remove("hidden");
+if(screen==="venda") carregarFavoritos();
+}
+
+function addProduto(produto){
+total += produto.preco;
+var existente = null;
+for(var i=0;i<itens.length;i++){
+if(itens[i].nome===produto.nome && !itens[i].removido){existente = itens[i];break}
+}
+if(existente){
+existente.qtd++;
+lastAddedIndex = itens.indexOf(existente);
+}else{
+itens.push({nome:produto.nome,preco:produto.preco,qtd:1,removido:false});
+lastAddedIndex = itens.length-1;
+}
+atualizarTela();
+}
+
+function toggleRemover(index){
+var item = itens[index];
+if(!item.removido){total -= item.qtd*item.preco; item.removido=true}
+else{total += item.qtd*item.preco; item.removido=false}
+lastAddedIndex = index;
+atualizarTela();
+}
+
+function atualizarTela(){
+document.getElementById("valor").innerText = "R$ "+total;
+var div = document.getElementById("itensVenda");
+div.innerHTML = "";
+
+for(var i=0;i<itens.length;i++){
+var it = itens[i];
+var linha = document.createElement("div");
+linha.className = "item" + (it.removido?" removido":"");
+if(i===lastAddedIndex) linha.className += " highlight";
+linha.innerHTML = '<span>'+it.nome+'</span><span>'+it.qtd+'</span><span>R$ '+(it.qtd*it.preco)+'</span>';
+linha.onclick = (function(idx){ return function(){ toggleRemover(idx); };})(i);
+div.appendChild(linha);
+}
+
+// SCROLL para o item focado
+setTimeout(function(){
+  var items = div.children;
+  if(items[lastAddedIndex]){
+    items[lastAddedIndex].scrollIntoView({behavior: "smooth", block: "nearest"});
+  }
+},0);
+}
+
+function reset(){ total=0; itens=[]; atualizarTela(); }
+
+function finalizar(){ alert("Venda registrada!"); reset(); showScreen("home"); }
+
+function carregarFavoritos(){
+var div = document.getElementById("favoritos");
+div.innerHTML="";
+for(var i=0;i<Math.min(6,produtos.length);i++){
+var p = produtos[i];
+var btn = document.createElement("button");
+btn.className="small-btn";
+btn.innerText=p.nome;
+btn.onclick = (function(prod){ return function(){ addProduto(prod); };})(p);
+div.appendChild(btn);
+}
+}
+
+function buscarProduto(){
+var termo = document.getElementById("busca").value.toLowerCase();
+var lista = document.getElementById("listaBusca");
+lista.innerHTML="";
+if(!termo) return;
+
+var filtrados = [];
+for(var i=0;i<produtos.length;i++){
+if(produtos[i].nome.toLowerCase().indexOf(termo)>=0) filtrados.push(produtos[i]);
+}
+
+for(var j=0;j<filtrados.length;j++){
+var p = filtrados[j];
+var btn = document.createElement("button");
+btn.className="small-btn";
+btn.innerText=p.nome+" (R$ "+p.preco+")";
+btn.onclick = (function(prod){ return function(){ addProduto(prod); };})(p);
+lista.appendChild(btn);
+}
+
+if(filtrados.length===0){
+var btn2 = document.createElement("button");
+btn2.className="small-btn";
+var nomeFormatado = formatarNome(termo);
+btn2.innerText = 'Cadastrar "' + nomeFormatado + '"';
+btn2.onclick = (function(nome){ return function(){ cadastrarProduto(nome); };})(termo);
+lista.appendChild(btn2);
+}
+}
+
+function formatarNome(nome) {
+  return nome
+    .toLowerCase()
+    .split(" ")
+    .map(function(p) {
+      return p.charAt(0).toUpperCase() + p.slice(1);
+    })
+    .join(" ");
+}
+
+function cadastrarProduto(nome){
+  var preco = prompt("Preço do produto:");
+
+  if(preco){
+    var favorito = confirm("Adicionar aos favoritos?");
+
+    var nomeFormatado = formatarNome(nome);
+
+    var novo = {
+      nome: nomeFormatado,
+      preco: parseFloat(preco)
+    };
+
+    produtos.push(novo);
+
+    if(favorito){
+      produtos.unshift(produtos.pop());
+    }
+
+    // adiciona direto na venda
+    total += novo.preco;
+    itens.push({
+      nome: novo.nome,
+      preco: novo.preco,
+      qtd: 1,
+      removido: false
+    });
+
+    lastAddedIndex = itens.length - 1;
+
+    alert("Produto cadastrado!");
+
+    document.getElementById("busca").value = "";
+    document.getElementById("listaBusca").innerHTML = "";
+
+    carregarFavoritos();
+    atualizarTela();
+  }
+}
+</script>
+</body>
+</html>
